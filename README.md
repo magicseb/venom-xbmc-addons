@@ -4,7 +4,7 @@ vStream est un addon pour xbmc qui vous permet de visionner en streaming un gran
 
 ## Tout Savoir!
 
-[![images](https://img.shields.io/badge/Visiter-vstream&#46;ga-yellowgreen.svg?style=for-the-badge)](http://vstream.ga)
+[![images](https://img.shields.io/badge/Visiter-vstream&#46;ga-yellowgreen.svg?style=for-the-badge)](https://kodi-vstream.github.io/venom-xbmc-doc/)
 
 [![images](https://img.shields.io/badge/Communauté-KodiFR-yellowgreen.svg?style=for-the-badge)](http://kodi-fr.rf.gd/)
 
@@ -15,6 +15,8 @@ Installez le zip du repository (pour avoir les mises à jour automatiques) ou in
 
 [![images](https://img.shields.io/badge/T%C3%A9l%C3%A9charger-Repository-blue.svg?style=for-the-badge)](https://github.com/Kodi-vStream/venom-xbmc-addons/releases/tag/0.0.3)
 
+Suite a des bloquages plutot agressif des FAI, il peut etre utile pour vous de changer vos DNS, plus d'infos par exemple sur ce lien
+`https://www.numerama.com/tech/208908-comment-changer-ses-dns-ubuntu-macos-windows.html`
 
 ## Contribuer!
 

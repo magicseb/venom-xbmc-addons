@@ -7,14 +7,16 @@ from resources.lib.handler.inputParameterHandler import cInputParameterHandler
 from resources.lib.handler.outputParameterHandler import cOutputParameterHandler
 from resources.lib.handler.requestHandler import cRequestHandler
 from resources.lib.parser import cParser
-from resources.lib.comaddon import progress
+from resources.lib.comaddon import progress, VSlog
+from resources.lib.config import GestionCookie
 #from resources.lib.util import cUtil
+import random, re
 
 SITE_IDENTIFIER = 'neuf_docu'
 SITE_NAME = '9Docu'
 SITE_DESC = 'Site pour Telecharger ou Regarder des Documentaires et Emissions TV Gratuitement'
 
-URL_MAIN = 'https://9docu.com/'
+URL_MAIN = 'https://9docu.net/'
 
 URL_SEARCH = (URL_MAIN + '?s=', 'showMovies')
 URL_SEARCH_MISC = (URL_MAIN + '?s=', 'showMovies')
@@ -23,6 +25,8 @@ FUNCTION_SEARCH = 'showMovies'
 DOC_NEWS = (URL_MAIN, 'showMovies')
 DOC_GENRES = (True, 'showGenres')
 DOC_DOCS = ('http://', 'load')
+
+UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:66.0) Gecko/20100101 Firefox/66.0'
 
 def load():
     oGui = cGui()
@@ -120,15 +124,14 @@ def showMovies(sSearch = ''):
     oGui = cGui()
     oParser = cParser()
     if sSearch:
-      sUrl = sSearch
+      sUrl = sSearch.replace(' ', '+')
     else:
         oInputParameterHandler = cInputParameterHandler()
         sUrl = oInputParameterHandler.getValue('siteUrl')
 
     oRequestHandler = cRequestHandler(sUrl)
     sHtmlContent = oRequestHandler.request()
-
-    sPattern = 'class="attachment-medium aligncenter" src="([^<]+)" \/><div class="data"><h2 class="entry-title" ><a href="([^<]+)"  rel="bookmark" title=".+?">([^<]+)<\/a><\/h2><p class="entry-meta"><p>(.+?)<\/p>'
+    sPattern = 'class="attachment-medium aligncenter" src="([^"]+)".+?<a href="([^"<]+)"[^<>]+>([^<>]+)'
     aResult = oParser.parse(sHtmlContent, sPattern)
 
     if (aResult[0] == False):
@@ -146,14 +149,13 @@ def showMovies(sSearch = ''):
             sThumb = aEntry[0]
             sUrl = aEntry[1]
             sTitle = aEntry[2]
-            sDesc = aEntry[3]
 
             oOutputParameterHandler = cOutputParameterHandler()
             oOutputParameterHandler.addParameter('siteUrl', sUrl)
             oOutputParameterHandler.addParameter('sMovieTitle', sTitle)
             oOutputParameterHandler.addParameter('sThumb', sThumb)
 
-            oGui.addMisc(SITE_IDENTIFIER, 'showHosters', sTitle, 'doc.png', sThumb, sDesc, oOutputParameterHandler)
+            oGui.addMisc(SITE_IDENTIFIER, 'showHosters', sTitle, 'doc.png', sThumb, '', oOutputParameterHandler)
 
         progress_.VSclose(progress_)
 
@@ -168,7 +170,7 @@ def showMovies(sSearch = ''):
 
 def __checkForNextPage(sHtmlContent):
     oParser = cParser()
-    sPattern = '<link rel="next" href="(.+?)" />'
+    sPattern = '<link rel="next" href="([^"]+)" />'
     aResult = oParser.parse(sHtmlContent, sPattern)
     if (aResult[0] == True):
         return aResult[1][0]
@@ -186,17 +188,71 @@ def showHosters():
     oRequestHandler = cRequestHandler(sUrl)
     sHtmlContent = oRequestHandler.request()
 
-    sPattern = '<span class="15"><a href="(.+?)"'
+    sPattern = '<span class="(?:14|15)"><a href="([^"]+)"'
     aResult = oParser.parse(sHtmlContent, sPattern)
 
     if (aResult[0] == True):
         for aEntry in aResult[1]:
 
-            sHosterUrl = aEntry
-            oHoster = cHosterGui().checkHoster(sHosterUrl)
-            if (oHoster != False):
-                oHoster.setDisplayName(sMovieTitle)
-                oHoster.setFileName(sMovieTitle)
-                cHosterGui().showHoster(oGui, oHoster, sHosterUrl, sThumb)
+            if "ReviveLink" in aEntry:
+                url2 = 'http://' + (aEntry.split('/')[2]).lower() + '/qcap/Qaptcha.jquery.php'
+                idUrl = aEntry.split('/')[3]
+
+                #Make random key
+                s = "azertyupqsdfghjkmwxcvbn23456789AZERTYUPQSDFGHJKMWXCVBN_-#@";
+                RandomKey = ''.join(random.choice(s) for i in range(32))
+
+                oRequestHandler = cRequestHandler(url2)
+                oRequestHandler.setRequestType(1)
+                oRequestHandler.addHeaderEntry('Host', 'revivelink.com')
+                oRequestHandler.addHeaderEntry('User-Agent', UA)
+                oRequestHandler.addHeaderEntry('Accept', 'application/json, text/javascript, */*; q=0.01')
+                oRequestHandler.addHeaderEntry('Accept-Language', 'fr,fr-FR;q=0.8,en-US;q=0.5,en;q=0.3')
+                oRequestHandler.addHeaderEntry('Referer', aEntry)
+                oRequestHandler.addHeaderEntry('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8')
+                oRequestHandler.addHeaderEntry('X-Requested-With','XMLHttpRequest')
+                oRequestHandler.addParameters('action', 'qaptcha')
+                oRequestHandler.addParameters('qaptcha_key', RandomKey)
+
+                sHtmlContent = oRequestHandler.request()
+
+                cookies = oRequestHandler.GetCookies()
+                GestionCookie().SaveCookie('revivelink.com', cookies)
+                #VSlog( 'result'  + sHtmlContent)
+
+                if not '"error":false' in sHtmlContent:
+                    VSlog('Captcha rate')
+                    VSlog(sHtmlContent)
+                    return
+
+                cookies = GestionCookie().Readcookie('revivelink.com')
+                oRequestHandler = cRequestHandler('http://revivelink.com/slinks.php?R=' + idUrl + '&' + RandomKey)
+                oRequestHandler.addHeaderEntry('Host', 'revivelink.com')
+                oRequestHandler.addHeaderEntry('Referer', aEntry)
+                oRequestHandler.addHeaderEntry('Accept', 'application/json, text/javascript, */*; q=0.01')
+                oRequestHandler.addHeaderEntry('User-Agent', UA)
+                oRequestHandler.addHeaderEntry('Accept-Language', 'fr-FR,fr;q=0.8,en-US;q=0.6,en;q=0.4')
+                oRequestHandler.addHeaderEntry('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8')
+                oRequestHandler.addHeaderEntry('X-Requested-With', 'XMLHttpRequest')
+                oRequestHandler.addHeaderEntry('Cookie', cookies)
+
+                sHtmlContent = oRequestHandler.request()
+
+                result = re.findall('<td><a href="([^"]+)" title=\'([^<]+)\'>', sHtmlContent)
+                for url, title in result:
+                    sHosterUrl = url
+                    oHoster = cHosterGui().checkHoster(sHosterUrl)
+                    if (oHoster != False):
+                        oHoster.setDisplayName(title)
+                        oHoster.setFileName(title)
+                        cHosterGui().showHoster(oGui, oHoster, sHosterUrl, sThumb)
+            else:
+
+                sHosterUrl = aEntry
+                oHoster = cHosterGui().checkHoster(sHosterUrl)
+                if (oHoster != False):
+                    oHoster.setDisplayName(sMovieTitle)
+                    oHoster.setFileName(sMovieTitle)
+                    cHosterGui().showHoster(oGui, oHoster, sHosterUrl, sThumb)
 
     oGui.setEndOfDirectory()

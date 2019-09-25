@@ -6,17 +6,14 @@ from resources.lib.handler.inputParameterHandler import cInputParameterHandler
 from resources.lib.handler.outputParameterHandler import cOutputParameterHandler
 from resources.lib.handler.requestHandler import cRequestHandler
 from resources.lib.parser import cParser
-from resources.lib.comaddon import progress, VSlog
+from resources.lib.comaddon import progress
 
 SITE_IDENTIFIER = 'disneyhd_tk'
 SITE_NAME = 'Disney HD'
 SITE_DESC = 'Disney HD: Tous les films Disney en streaming'
 
 URL_MAIN = 'https://disneyhd.tk/'
-URL_LISTE = URL_MAIN + '?page=liste_new.php'
-
-MOVIE_HD = ('https://disneyhd.tk/liste_mosaique.php', 'showMovies')
-
+URL_LISTE = URL_MAIN + '?page=liste.php'
 ANIM_ENFANTS = ('http://', 'load')
 
 #URL_SEARCH = ('', 'sHowResultSearch')
@@ -30,9 +27,9 @@ UA = 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:56.0) Gecko/20100101 Firefox/56.0'
 def load():
     oGui = cGui()
 
-    # oOutputParameterHandler = cOutputParameterHandler()
-    # oOutputParameterHandler.addParameter('siteUrl', 'http://venom/')
-    # oGui.addDir(SITE_IDENTIFIER, 'showSearch', 'Recherche', 'search.png', oOutputParameterHandler)
+    oOutputParameterHandler = cOutputParameterHandler()
+    oOutputParameterHandler.addParameter('siteUrl', 'http://venom/')
+    oGui.addDir(SITE_IDENTIFIER, 'showSearch', 'Recherche', 'search.png', oOutputParameterHandler)
 
     oOutputParameterHandler = cOutputParameterHandler()
     oOutputParameterHandler.addParameter('siteUrl', URL_MAIN)
@@ -62,37 +59,25 @@ def showSearch():
 def sHowResultSearch(sSearch = ''):
     oGui = cGui()
 
-    pdata = 'requete=' + sSearch
-    oRequest = cRequestHandler(URL_MAIN + 'search.php')
-    oRequest.setRequestType(1)
-    oRequest.addHeaderEntry('User-Agent', UA)
-    oRequest.addHeaderEntry('Host', 'disneyhd.tk')
-    oRequest.addHeaderEntry('Referer', URL_MAIN + 'index.php')
-    oRequest.addHeaderEntry('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8')
-    oRequest.addHeaderEntry('Accept-Language', 'fr,fr-FR;q=0.8,en-US;q=0.5,en;q=0.3')
-    oRequest.addHeaderEntry('Content-Type', 'application/x-www-form-urlencoded')
-    oRequest.addParametersLine(pdata)
-
-    sHtmlContent = oRequest.request()
+    oRequestHandler = cRequestHandler('https://disneyhd.tk/movies_list.php')
+    sHtmlContent = oRequestHandler.request()
 
     oParser = cParser()
-    sPattern = '<a class="searchresult" href="([^"]+)".+?<img src="([^"]+)" alt="(.+?)"/>'
+    sPattern = '<img src="([^"]+)"><div class="title">([^>]+)<\/div><\/a><a class="item" href="([^"]+)"'
     aResult = oParser.parse(sHtmlContent, sPattern)
-
-    if (aResult[0] == False):
-        oGui.addText(SITE_IDENTIFIER)
-
+    
     if (aResult[0] == True):
+        
         total = len(aResult[1])
         progress_ = progress().VScreate(SITE_NAME)
         for aEntry in aResult[1]:
-            progress_.VSupdate(progress_, total)
-            if progress_.iscanceled():
-                break
 
-            sUrl = URL_MAIN + aEntry[0]
-            sThumb = URL_MAIN + aEntry[1]
-            sTitle = aEntry[2]
+            sUrl = URL_MAIN + aEntry[2]
+            sThumb = URL_MAIN + aEntry[0]
+            sTitle = aEntry[1]
+
+            if sSearch.lower() not in sTitle.lower():
+                continue
 
             oOutputParameterHandler = cOutputParameterHandler()
             oOutputParameterHandler.addParameter('siteUrl', sUrl)
@@ -119,12 +104,17 @@ def showMovies():
 
     oInputParameterHandler = cInputParameterHandler()
     sUrl = oInputParameterHandler.getValue('siteUrl')
+    
     if oInputParameterHandler.exist('filtre'):
         sFiltre = oInputParameterHandler.getValue('filtre')
     else:
         sFiltre = "none"
     oRequestHandler = cRequestHandler(sUrl)
     sHtmlContent = oRequestHandler.request()
+    
+    #fh = open('c:\\test.txt', "w")
+    #fh.write(sHtmlContent)
+    #fh.close()
 
     if 'ajouts' in sFiltre:
         sHtmlContent = oParser.abParse(sHtmlContent, '</i> Derniers ajouts', '</section>')
@@ -179,8 +169,13 @@ def showHosters():
     #film
     if '<ol id="playlist">' in sHtmlContent:
         sPattern = '<li data-trackurl="([^"]+)">(.+?)<\/li>'
+        
+    elif 'data-ws=' in sHtmlContent:
+        sPattern = 'data-ws="([^"]+)">(.+?)</span>'
     else:
         sPattern = '<span class="qualiteversion" data-qualurl="([^"]+)">([^"]+)</span>'
+
+        
     aResult = oParser.parse(sHtmlContent, sPattern)
 
     if (aResult[0] == True):

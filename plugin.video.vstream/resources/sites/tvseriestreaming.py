@@ -6,8 +6,10 @@ from resources.lib.handler.inputParameterHandler import cInputParameterHandler
 from resources.lib.handler.outputParameterHandler import cOutputParameterHandler
 from resources.lib.handler.requestHandler import cRequestHandler
 from resources.lib.parser import cParser
-from resources.lib.comaddon import progress, addon
+from resources.lib.comaddon import progress, addon, VSlog
 import re
+
+return False
 
 sColor = addon().getSetting("deco_color")
 
@@ -17,12 +19,12 @@ SITE_IDENTIFIER = 'tvseriestreaming'
 SITE_NAME = 'Tv_seriestreaming'
 SITE_DESC = 'Séries & Animés en Streaming'
 
-URL_MAIN = 'https://fr.seriestreaming.site/'
+URL_MAIN = 'https://les.seriestreaming.site/'
 
 SERIE_SERIES = ('http://', 'load')
-SERIE_NEWS = (URL_MAIN + 'les-nouveaux-episodes', 'showMovies')
-SERIE_VIEWS = (URL_MAIN + 'top-series', 'showMovies')
-SERIE_COMMENT = (URL_MAIN + 'le-top-des-meilleures-serie', 'showMovies')
+SERIE_NEWS = (URL_MAIN + 'nouv-episodes', 'showMovies')
+SERIE_VIEWS = (URL_MAIN + 'la-top-des-meilleures-series', 'showMovies')
+SERIE_COMMENT = (URL_MAIN + 'les-serie-populaire-streaming', 'showMovies')
 SERIE_LIST = (URL_MAIN, 'showAZ')
 SERIE_GENRES = (True, 'showGenres')
 SERIE_ANNEES = (True, 'showSerieYears')
@@ -48,7 +50,7 @@ def load():
 
     oOutputParameterHandler = cOutputParameterHandler()
     oOutputParameterHandler.addParameter('siteUrl', SERIE_COMMENT[0])
-    oGui.addDir(SITE_IDENTIFIER, SERIE_COMMENT[1], 'Séries (Les plus commentées)', 'comments.png', oOutputParameterHandler)
+    oGui.addDir(SITE_IDENTIFIER, SERIE_COMMENT[1], 'Séries (Populaire)', 'comments.png', oOutputParameterHandler)
 
     oOutputParameterHandler = cOutputParameterHandler()
     oOutputParameterHandler.addParameter('siteUrl', SERIE_LIST[0])
@@ -90,7 +92,7 @@ def showSerieYears():
 def showAZ():
     oGui = cGui()
 
-    for i in range(0, 27) :
+    for i in range(0, 27):
         if (i < 1):
             sLetter = '\d+'
             aLetter = '0-9'
@@ -110,13 +112,14 @@ def AlphaDisplay():
     oInputParameterHandler = cInputParameterHandler()
     sLetter = oInputParameterHandler.getValue('sLetter')
 
-    oRequestHandler = cRequestHandler(URL_MAIN)
+    oRequestHandler = cRequestHandler(URL_MAIN + 'serie-vf.html')
     sHtmlContent = oRequestHandler.request()
+
     sHtmlContent = oParser.abParse(sHtmlContent, '<h1>Listes des séries:</h1>', '<div class="container"><br>')
 
     sPattern = '<a title="(' + sLetter + '.+?)" href="([^"]+)"'
     aResult = oParser.parse(sHtmlContent, sPattern)
-    if (aResult[0] == True) :
+    if (aResult[0] == True):
         total = len(aResult[1])
         progress_ = progress().VScreate(SITE_NAME)
         for aEntry in aResult[1]:
@@ -125,7 +128,7 @@ def AlphaDisplay():
                 break
 
             sUrl = aEntry[1]
-            sTitle =  aEntry[0]
+            sTitle = aEntry[0]
 
             oOutputParameterHandler = cOutputParameterHandler()
             oOutputParameterHandler.addParameter('siteUrl', sUrl)
@@ -197,14 +200,14 @@ def showMovies(sSearch=''):
     oInputParameterHandler = cInputParameterHandler()
 
     if sSearch:
-        sUrl = sSearch
+        sUrl = sSearch.replace(' ', '+')
     else:
         sUrl = oInputParameterHandler.getValue('siteUrl')
 
     oRequestHandler = cRequestHandler(sUrl)
     sHtmlContent = oRequestHandler.request()
     #news
-    if 'nouveaux' in sUrl:
+    if 'nouv-episodes' in sUrl:
         sPattern = '<a href="([^"]+)" class="list-group-item.+?>(.+?)<b>(.+?)</b>'
         sHtmlContent = oParser.abParse(sHtmlContent, "<h4>Les derniers episodes", "les plus vues")
     #reste
@@ -223,7 +226,7 @@ def showMovies(sSearch=''):
             if progress_.iscanceled():
                 break
 
-            if 'nouveaux' in sUrl:
+            if 'nouv-episodes' in sUrl:
                 sUrl2 = aEntry[0]
                 sTitle = aEntry[1].replace(' -', ' ') + aEntry[2].replace(' ', '')
                 sThumb = 'news.png'
@@ -238,7 +241,7 @@ def showMovies(sSearch=''):
             oOutputParameterHandler.addParameter('sMovieTitle', sTitle)
             oOutputParameterHandler.addParameter('sThumb', sThumb)
 
-            if 'nouveaux' in sUrl:
+            if 'nouv-episodes' in sUrl:
                 oGui.addDir(SITE_IDENTIFIER, 'showLink', sTitle, sThumb, oOutputParameterHandler)
             else:
                 oGui.addMisc(SITE_IDENTIFIER, 'showS_E', sTitle, '', sThumb, '', oOutputParameterHandler)
@@ -343,8 +346,9 @@ def showLink():
     if (aResult[0] == True):
         linkid = aResult[1][0]
 
-    sPattern = '<\/i> *Lien.+?</td>.+?alt="([^"]+)".+?(?:|center">([^<]+)</td>.+?)data-id="([^"]+)">'
+    sPattern = '<\/i> *Lien.+?</td>.+?alt="([^"]+)".+?(?:|center">([^<]+)</td>.+?)(?:|data-uid="([^"]+)") data-id="([^"]+)">'
     aResult = oParser.parse(sHtmlContent, sPattern)
+
     if (aResult[0] == True):
         total = len(aResult[1])
         progress_ = progress().VScreate(SITE_NAME)
@@ -354,7 +358,14 @@ def showLink():
                 break
 
             sHost = re.sub('\..+', '', aEntry[0]).capitalize()
-            sUrl = URL_MAIN + 'link/' + aEntry[2] + '/' + linkid
+
+            if aEntry[2] == '':
+                sUrl = URL_MAIN + 'link/' + aEntry[3] + '/' + linkid
+
+            else:
+                sUrl = URL_MAIN + 'links/' + aEntry[3] #ancienne methode du site tjr ok
+
+
             sLang = aEntry[1]
             sTitle = ('%s (%s) [COLOR %s]%s[/COLOR]') % (sMovieTitle, sLang, sColor, sHost)
 
@@ -375,6 +386,8 @@ def showHosters():
     sMovieTitle = oInputParameterHandler.getValue('sMovieTitle')
     sThumb = oInputParameterHandler.getValue('sThumb')
 
+    VSlog(sUrl)
+    
     oRequest = cRequestHandler(sUrl)
     oRequest.addHeaderEntry('User-Agent', UA)
     oRequest.addHeaderEntry('Referer', sUrl)
@@ -384,9 +397,12 @@ def showHosters():
 
     sPattern = '<iframe class="embed-responsive-.+?src=(.+?) *allowfullscreen><\/iframe>'
     aResult = oParser.parse(sHtmlContent, sPattern)
-
     if (aResult[0] == True):
         sHosterUrl = aResult[1][0]
+    else:
+        sHosterUrl = sHtmlContent #ancienne methode du site tjr ok
+
+    if sHosterUrl:
         oHoster = cHosterGui().checkHoster(sHosterUrl)
 
         if (oHoster != False):

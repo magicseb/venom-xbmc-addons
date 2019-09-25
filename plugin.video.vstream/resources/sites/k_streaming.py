@@ -10,31 +10,28 @@ from resources.lib.comaddon import progress
 
 SITE_IDENTIFIER = 'k_streaming'
 SITE_NAME = 'K-Streaming'
-SITE_DESC = 'films en streaming, streaming hd, streaming 720p, Films/séries, récent'
+SITE_DESC = 'Regarder Films en Streaming et Séries français gratuit'
 
-URL_MAIN = 'http://www.k-streaming.cc/'
+URL_MAIN = 'https://www.k-streaming.ch/'
 
 #definis les url pour les catégories principale, ceci est automatique, si la definition est présente elle sera affichee.
 #LA RECHERCHE GLOBAL N'UTILE PAS showSearch MAIS DIRECTEMENT LA FONCTION INSCRITE DANS LA VARIABLE URL_SEARCH_*
+FUNCTION_SEARCH = 'showMovies'
 URL_SEARCH = (URL_MAIN + '?s=', 'showMovies')
 #recherche global films
-URL_SEARCH_MOVIES = (URL_MAIN + '?s=', 'showMovies')
+URL_SEARCH_MOVIES = (URL_SEARCH[0], 'showMovies')
 #recherche global serie
-URL_SEARCH_SERIES = (URL_MAIN + '?s=', 'showMovies')
-#recherche global divers
-URL_SEARCH_MISC = (URL_MAIN + '?s=', 'showMovies')
-#
-FUNCTION_SEARCH = 'showMovies'
+URL_SEARCH_SERIES = (URL_SEARCH[0], 'showMovies')
 
 MOVIE_NEWS = (URL_MAIN, 'showMovies')
-MOVIE_MOVIE = (URL_MAIN, 'showMovies')
+MOVIE_MOVIE = ('http://', 'load')
 MOVIE_VIEWS = (URL_MAIN + 'film-les-plus-vues/', 'showMovies')
 MOVIE_COMMENTS = (URL_MAIN + 'films-plus-commenter-streaming/', 'showMovies')
 MOVIE_NOTES = (URL_MAIN + 'film-streaming-populaires/', 'showMovies')
 MOVIE_GENRES = (True, 'showGenres')
 
-SERIE_SERIES = (URL_MAIN + 'film/serie-gratuit/', 'showMovies')
-SERIE_NEWS = (URL_MAIN + 'film/serie-gratuit/', 'showMovies')
+SERIE_SERIES = ('http://', 'load')
+SERIE_NEWS = (URL_MAIN + 'film/serie-gratuit-1/', 'showMovies')
 SERIE_VIEWS =  (URL_MAIN + 'film-les-plus-vues/', 'showMovies')
 SERIE_COMMENTS = (URL_MAIN + 'films-plus-commenter-streaming/', 'showMovies')
 SERIE_NOTES = (URL_MAIN + 'film-streaming-populaires/', 'showMovies')
@@ -45,6 +42,19 @@ def load():
     oOutputParameterHandler = cOutputParameterHandler()
     oOutputParameterHandler.addParameter('siteUrl', 'http://venom/')
     oGui.addDir(SITE_IDENTIFIER, 'showSearch', 'Recherche', 'search.png', oOutputParameterHandler)
+
+    oOutputParameterHandler = cOutputParameterHandler()
+    oOutputParameterHandler.addParameter('siteUrl', 'http://venom/')
+    oGui.addDir(SITE_IDENTIFIER, 'showMenuMovies', 'Films (Menu)', 'films.png', oOutputParameterHandler)
+
+    oOutputParameterHandler = cOutputParameterHandler()
+    oOutputParameterHandler.addParameter('siteUrl', 'http://venom/')
+    oGui.addDir(SITE_IDENTIFIER, 'showMenuSeries', 'Séries (Menu)', 'series.png', oOutputParameterHandler)
+
+    oGui.setEndOfDirectory()
+
+def showMenuMovies():
+    oGui = cGui()
 
     oOutputParameterHandler = cOutputParameterHandler()
     oOutputParameterHandler.addParameter('siteUrl', MOVIE_NEWS[0])
@@ -65,6 +75,11 @@ def load():
     oOutputParameterHandler = cOutputParameterHandler()
     oOutputParameterHandler.addParameter('siteUrl', MOVIE_NOTES[0])
     oGui.addDir(SITE_IDENTIFIER, MOVIE_NOTES[1], 'Films (Les mieux notés)', 'notes.png', oOutputParameterHandler)
+
+    oGui.setEndOfDirectory()
+
+def showMenuSeries():
+    oGui = cGui()
 
     oOutputParameterHandler = cOutputParameterHandler()
     oOutputParameterHandler.addParameter('siteUrl', SERIE_NEWS[0])
@@ -89,17 +104,16 @@ def showSearch():
 
     sSearchText = oGui.showKeyBoard()
     if (sSearchText != False):
-        sUrl = URL_SEARCH[0] + sSearchText
+        sUrl = URL_SEARCH[0] + sSearchText.replace(' ', '+')
         showMovies(sUrl)
         oGui.setEndOfDirectory()
         return
-
 
 def showGenres():
     oGui = cGui()
 
     liste = []
-    liste.append( ['Action', URL_MAIN + 'film/action-gratuit-vf/'] )
+    liste.append( ['Action', URL_MAIN + 'film/action-complet/'] )
     liste.append( ['Animation', URL_MAIN + 'film/animation-gratuit/'] )
     liste.append( ['Arts Martiaux', URL_MAIN + 'film/arts-martiaux-streaming-vf/'] )
     liste.append( ['Aventure', URL_MAIN + 'film/aventure-streaming-vf/'] )
@@ -127,15 +141,15 @@ def showGenres():
 
     oGui.setEndOfDirectory()
 
-
 def showMovies(sSearch = ''):
     oGui = cGui()
     oParser = cParser()
+
+    oInputParameterHandler = cInputParameterHandler()
+    sUrl = oInputParameterHandler.getValue('siteUrl')
+
     if sSearch:
       sUrl = sSearch.replace(' ', '+')
-    else:
-        oInputParameterHandler = cInputParameterHandler()
-        sUrl = oInputParameterHandler.getValue('siteUrl')
 
     oRequestHandler = cRequestHandler(sUrl)
     sHtmlContent = oRequestHandler.request()
@@ -156,7 +170,6 @@ def showMovies(sSearch = ''):
                 break
 
             sUrl2 = aEntry[0]
-
             sThumb = aEntry[1]
             #delete du tiret pour les series
             sTitle = aEntry[2].replace(' - Saison', ' Saison')
@@ -183,16 +196,14 @@ def showMovies(sSearch = ''):
     if not sSearch:
         oGui.setEndOfDirectory()
 
-
 def __checkForNextPage(sHtmlContent):
     oParser = cParser()
-    sPattern = '<a class="nextpostslink" rel="next" href="(.+?)"'
+    sPattern = '<a class="nextpostslink" rel="next" href="([^"]+)"'
     aResult = oParser.parse(sHtmlContent, sPattern)
     if (aResult[0] == True):
         return aResult[1][0]
 
     return False
-
 
 def showEpisodes():
     oGui = cGui()
@@ -219,7 +230,7 @@ def showEpisodes():
 
     #recuperation du hoster de base
     ListeUrl = []
-    sPattern = '<div class="keremiya_part"> *<span>([^<]+)</span>'
+    sPattern = '<div class="keremiya_part">.+?<span>([^<]+)<\/span>'
     aResult = oParser.parse(sHtmlContent, sPattern)
 
     if (aResult[0] == False):
@@ -229,7 +240,7 @@ def showEpisodes():
         ListeUrl = [(sUrl, aResult[1][0])]
 
     #recuperation des suivants
-    sPattern = '<a href="([^<]+)"><span>(.+?)</span>'
+    sPattern = '<a href="([^"]+)" class=.+?<span>(.+?)<\/span>'
     aResult = oParser.parse(sHtmlContent, sPattern)
     ListeUrl = ListeUrl + aResult[1]
 
@@ -277,7 +288,7 @@ def showHosters():
     sHtmlContent = oRequestHandler.request()
 
     oParser = cParser()
-    sPattern = '<iframe.+?src="(.+?)"'
+    sPattern = '<iframe.+?SRC="([^"]+)"'
 
     aResult = oParser.parse(sHtmlContent, sPattern)
 

@@ -69,8 +69,9 @@ class cHoster(iHoster):
 
     def __getMediaLinkForGuest(self):
 
-        oRequest = cRequestHandler(self.__sUrl)
+        oRequest = cRequestHandler(self.__sUrl.replace('sn', 'embed'))
         oRequest.addHeaderEntry('User-Agent', UA)
+        oRequest.addHeaderEntry('Host', 'www.speedvid.net')
         sHtmlContent = oRequest.request()
 
         #suppression commentaires
@@ -139,10 +140,24 @@ class cHoster(iHoster):
 
         api_call = ''
 
-        sPattern = "file\s*:\s*\'([^\']+.mp4)"
+        sPattern = '(eval\(function\(p,a,c,k,e(?:.|\s)+?\)\))<'
         aResult = oParser.parse(sHtmlContent, sPattern)
         if (aResult[0] == True):
-            api_call = aResult[1][0]
+            for packed in aResult[1]:
+                sHtmlContent = cPacker().unpack(packed)
+                sHtmlContent = sHtmlContent.replace('\\', '')
+                if "jwplayer('vplayer').setup" in sHtmlContent:
+                    sPattern2 = "{file:.([^']+.mp4)"
+                    aResult2 = oParser.parse(sHtmlContent, sPattern2)
+                    if (aResult2[0] == True):
+                        api_call = aResult2[1][0]
+                        break
+
+        else:
+            sPattern = "file\s*:\s*\'([^\']+.mp4)"
+            aResult = oParser.parse(sHtmlContent, sPattern)
+            if (aResult[0] == True):
+                api_call = aResult[1][0]
 
         VSlog('API_CALL: ' + api_call )
 
@@ -175,7 +190,7 @@ def CheckCpacker(str):
             tmp = cPacker().unpack(str2)
             #tmp = tmp.replace("\\'", "'")
         except:
-            tmp =''
+            tmp = ''
 
         #VSlog(tmp)
 
@@ -209,11 +224,10 @@ def CheckAADecoder(str):
             JScode = aResult.group(2)
             JScode = unicode(JScode, "utf-8")
 
-            tmp = JP.ProcessJS(JScode,Liste_var)
+            tmp = JP.ProcessJS(JScode, Liste_var)
             tmp = JP.LastEval.decode('string-escape').decode('string-escape')
 
             return str[:aResult.start()] + tmp + str[aResult.end():]
         except:
             return ''
-
     return str

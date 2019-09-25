@@ -7,7 +7,7 @@ from resources.lib.handler.outputParameterHandler import cOutputParameterHandler
 from resources.lib.handler.requestHandler import cRequestHandler
 from resources.lib.parser import cParser
 from resources.lib.util import cUtil
-from resources.lib.comaddon import progress
+from resources.lib.comaddon import progress#,VSlog
 
 SITE_IDENTIFIER = 'libre_stream_org'
 SITE_NAME = 'Libre-Streaming'
@@ -26,10 +26,10 @@ SERIE_NEWS = (URL_MAIN + 'series/', 'showMovies')
 SERIE_VFS = (URL_MAIN + 'series/version-francaise/', 'showMovies')
 SERIE_VOSTFRS = (URL_MAIN + 'series/vostfr/', 'showMovies')
 
-URL_SEARCH = (URL_MAIN + '?q=', 'showMovies')
-URL_SEARCH_MOVIES = (URL_MAIN + '?q=', 'showMovies')
-URL_SEARCH_SERIES = (URL_MAIN + '?q=', 'showMovies')
 FUNCTION_SEARCH = 'showMovies'
+URL_SEARCH = (URL_MAIN + '?q=', 'showMovies')
+URL_SEARCH_MOVIES = (URL_SEARCH[0], 'showMovies')
+URL_SEARCH_SERIES = (URL_SEARCH[0], 'showMovies')
 
 def load():
     oGui = cGui()
@@ -74,7 +74,7 @@ def showSearch():
 
     sSearchText = oGui.showKeyBoard()
     if (sSearchText != False):
-        sUrl = URL_SEARCH[0] + sSearchText
+        sUrl = URL_SEARCH[0] + sSearchText.replace(' ', '+')
         showMovies(sUrl)
         oGui.setEndOfDirectory()
         return
@@ -102,6 +102,7 @@ def showGenres():
     liste.append( ['Guerre', URL_MAIN + 'films/guerre/'] )
     liste.append( ['Historiques', URL_MAIN + 'films/historique/'] )
     liste.append( ['Horreur', URL_MAIN + 'films/horreur/'] )
+    liste.append( ['Manga', URL_MAIN + 'films/manga/'] )
     liste.append( ['Musicale', URL_MAIN + 'films/musical/'] )
     liste.append( ['Policier', URL_MAIN + 'films/policier/'] )
     liste.append( ['Romance', URL_MAIN + 'films/romance/'] )
@@ -199,7 +200,7 @@ def showMovies(sSearch = ''):
     oGui = cGui()
     oParser = cParser()
     if sSearch:
-      sUrl = sSearch
+      sUrl = sSearch.replace(' ', '+')
     else:
         oInputParameterHandler = cInputParameterHandler()
         sUrl = oInputParameterHandler.getValue('siteUrl')
@@ -207,11 +208,11 @@ def showMovies(sSearch = ''):
     oRequestHandler = cRequestHandler(sUrl)
     sHtmlContent = oRequestHandler.request()
 
-    sPattern = '<div class="libre-movie.+?data-src="(.+?)".+?title="(.+?)".+?onclick="window.location.href=\'(.+?)\'">.+?class="maskhr">Synopsis.+?</span>(.+?)</div>'
+    sPattern = '<div class="libre-movie.+?data-src="([^"]+)".+?title="([^"]+)".+?onclick="window.location.href=\'(.+?)\'">.+?class="maskhr">Synopsis.+?</span>(.+?)</div>'
     if '/films' in sUrl:
         sPattern = sPattern + '.+?<div class="maskquality (.+?)">'
     if '/series' in sUrl:
-        sPattern = sPattern + '.+?>Séries</a>.+?<a href=".+?">(.+?)</a>'
+        sPattern = sPattern + '.+?>Séries</a>.+?<a href=".+?">([^<]+)</a>'
 
     aResult = oParser.parse(sHtmlContent, sPattern)
 
@@ -277,7 +278,7 @@ def showMovies(sSearch = ''):
         oGui.setEndOfDirectory()
 
 def __checkForNextPage(sHtmlContent):
-    sPattern = '<a href="([^<>""]+?)"><i class="fa fa-angle-right"></i></a>'
+    sPattern = '<a href="([^"]+)"><i class="fa fa-angle-right"></i></a>'
     oParser = cParser()
     aResult = oParser.parse(sHtmlContent, sPattern)
 
@@ -304,12 +305,22 @@ def showHosters():
     if (aResult[0] == True):
         for aEntry in aResult[1]:
 
-            sHosterUrl = aEntry
-            oHoster = cHosterGui().checkHoster(sHosterUrl)
-            if (oHoster != False):
-                oHoster.setDisplayName(sMovieTitle)
-                oHoster.setFileName(sMovieTitle)
-                cHosterGui().showHoster(oGui, oHoster, sHosterUrl, sThumb)
+            if '/player' in aEntry or 'lecteur' in aEntry:
+                sTitle = sMovieTitle + ' (Redirection)'
+                sUrl1 = aEntry.replace('player.full-stream.co/player?id=', 'full-stream.co/player.php?id=')
+                oOutputParameterHandler = cOutputParameterHandler()
+                oOutputParameterHandler.addParameter('siteUrl', sUrl1)
+                oOutputParameterHandler.addParameter('sMovieTitle', sMovieTitle)
+                oOutputParameterHandler.addParameter('sThumb', sThumb )
+                oGui.addLink(SITE_IDENTIFIER, 'redirectHosters', sTitle, sThumb, '', oOutputParameterHandler)
+
+            else:
+                sHosterUrl = aEntry
+                oHoster = cHosterGui().checkHoster(sHosterUrl)
+                if (oHoster != False):
+                    oHoster.setDisplayName(sMovieTitle)
+                    oHoster.setFileName(sMovieTitle)
+                    cHosterGui().showHoster(oGui, oHoster, sHosterUrl, sThumb)
 
     oGui.setEndOfDirectory()
 
@@ -324,21 +335,21 @@ def seriesHosters():
     oRequestHandler = cRequestHandler(sUrl)
     sHtmlContent = oRequestHandler.request()
 
-    sPattern = '<div class="e-number">.+?<iframe src="(.+?)".+?class="episode-id">(.+?)<'
+    sPattern = '<div class="e-number">.+?<iframe src="([^"]+)".+?class="episode-id">([^<]+)<'
     aResult = oParser.parse(sHtmlContent, sPattern)
 
     if (aResult[0] == True):
         for aEntry in aResult[1]:
 
-            if '/player' in aEntry[0]:
+            if '/player' in aEntry[0] or 'full-stream.' in aEntry[0] or 'lecteur' in aEntry[0]:
                 sTitle = sMovieTitle + aEntry[1] + '(Redirection)'
-                sUrl1 = aEntry[0].replace('player.full-stream.co/player?id=','full-stream.co/player.php?id=')
+                sUrl1 = aEntry[0].replace('player.full-stream.co/player?id=', 'full-stream.co/player.php?id=')
                 oOutputParameterHandler = cOutputParameterHandler()
                 oOutputParameterHandler.addParameter('siteUrl', sUrl1)
                 oOutputParameterHandler.addParameter('sMovieTitle', sMovieTitle)
                 oOutputParameterHandler.addParameter('sThumb', sThumb )
                 oGui.addLink(SITE_IDENTIFIER, 'redirectHosters', sTitle, sThumb, '', oOutputParameterHandler)
-                
+
             else:
                 sTitle = sMovieTitle + ' ' + aEntry[1]
                 sHosterUrl = aEntry[0]
@@ -349,10 +360,10 @@ def seriesHosters():
                     cHosterGui().showHoster(oGui, oHoster, sHosterUrl, sThumb)
 
     oGui.setEndOfDirectory()
-    
+
 def redirectHosters():
     oGui = cGui()
-    UA = 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:61.0) Gecko/20100101 Firefox/61.0'
+    UA = 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:69.0) Gecko/20100101 Firefox/69.0'
     oInputParameterHandler = cInputParameterHandler()
     sUrl = oInputParameterHandler.getValue('siteUrl')
     sMovieTitle = oInputParameterHandler.getValue('sMovieTitle')

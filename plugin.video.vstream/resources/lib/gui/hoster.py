@@ -154,6 +154,8 @@ class cHosterGui:
                 return tmp
 
         #Gestion classique
+        if ('streamax' in sHostName):
+            return self.getHoster('streamax')
         if ('livestream' in sHostName):
             return self.getHoster('lien_direct')
         if ('gounlimited' in sHostName):
@@ -197,10 +199,13 @@ class cHosterGui:
         if ('uptostream' in sHostName):
             return self.getHoster('uptostream')
         if (('dailymotion' in sHostName) or ('dai.ly' in sHostName)):
-            return self.getHoster('dailymotion')
+            if 'stream' in sHosterUrl:
+                return self.getHoster('lien_direct')
+            else:
+                return self.getHoster('dailymotion')
         if ('filez.' in sHostName):
             return self.getHoster('flashx')
-        if ('mystream' in sHostName):
+        if ('mystream' in sHostName) or ('mstream' in sHostName):
             return self.getHoster('mystream')
         if ('streamingentiercom/videophp?type=speed' in sHosterUrl):
             return self.getHoster('speedvideo')
@@ -234,14 +239,14 @@ class cHosterGui:
             return self.getHoster('openload')
         if ('oload.' in sHostName):
             return self.getHoster('openload')
+        if ('oladblock.' in sHostName):
+            return self.getHoster('openload')
         if (('thevideo.' in sHostName) or ('video.tt' in sHostName) or ('vev.io' in sHostName)):
             return self.getHoster('thevideo_me')
         if ('uqload.' in sHostName):
             return self.getHoster('uqload')
         if ('letwatch' in sHostName):
             return self.getHoster('letwatch')
-        if ('easyvid' in sHostName):
-            return self.getHoster('easyvid')
         if ('www.amazon' in sHostName):
             return self.getHoster('amazon')
         if ('filepup' in sHostName):
@@ -296,7 +301,7 @@ class cHosterGui:
             return self.getHoster('vidbom')
         if ('upvid.' in sHostName):
             return self.getHoster('upvid')
-        if ('cloudvid' in sHostName):
+        if (('cloudvid' in sHostName ) or ('clipwatching.' in sHostName)):#meme code
             return self.getHoster('cloudvid')
         if ('megadrive' in sHostName):
             return self.getHoster('megadrive')
@@ -308,7 +313,7 @@ class cHosterGui:
             return self.getHoster('iframe_secured')
         if ('iframe-secure' in sHostName):
             return self.getHoster('iframe_secure')
-        if ('goo.gl' in sHostName or 'bit.ly' in sHostName or 'streamcrypt.net' in sHostName):
+        if ('goo.gl' in sHostName or 'bit.ly' in sHostName or 'streamcrypt.net' in sHostName or 'opsktp.com' in sHosterUrl):
             return self.getHoster('allow_redirects')
         if ('jawcloud' in sHostName):
             return self.getHoster('jawcloud')
@@ -328,6 +333,22 @@ class cHosterGui:
             return self.getHoster('hd_stream')
         if ('rapidstream' in sHostName):
             return self.getHoster('rapidstream')
+        if ('beeload' in sHostName):
+            return self.getHoster('beeload')
+        if ('verystream.' in sHostName):
+            return self.getHoster('verystream')
+        if ('archive.' in sHostName):
+            return self.getHoster('archive')
+        if ('freshstream' in sHostName):
+            return self.getHoster('freshstream')
+        if ('jetload' in sHostName):
+            return self.getHoster('jetload')
+        if ('french-vid' in sHostName or 'fembed.' in sHostName):
+            return self.getHoster('frenchvid')
+        if ('flix555' in sHostName):
+            return self.getHoster('flix555')
+        if ('onlystream' in sHostName):
+            return self.getHoster('onlystream')
         
         #Lien telechargeable a convertir en stream
         if ('1fichier' in sHostName):

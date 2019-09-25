@@ -2,18 +2,15 @@
 #Venom.
 # https://github.com/Kodi-vStream/venom-xbmc-addons
 
-from resources.lib.statistic import cStatistic
+#from resources.lib.statistic import cStatistic
 from resources.lib.gui.hoster import cHosterGui
-from resources.lib.gui.guiElement import cGuiElement
 from resources.lib.home import cHome
 from resources.lib.gui.gui import cGui
 from resources.lib.handler.pluginHandler import cPluginHandler
 from resources.lib.handler.rechercheHandler import cRechercheHandler
 from resources.lib.handler.inputParameterHandler import cInputParameterHandler
 from resources.lib.handler.outputParameterHandler import cOutputParameterHandler
-
 from resources.lib.db import cDb
-
 from resources.lib.comaddon import progress, VSlog, addon, window, xbmc
 
 #http://kodi.wiki/view/InfoLabels
@@ -28,19 +25,31 @@ class main:
 
         #import sys
         #xbmc.log('arg :' + str(sys.argv), xbmc.LOGNOTICE)
-        #xbmc.log('Debug 1 >>' + str(xbmc.getInfoLabel('Container().CurrentPage')) , xbmc.LOGNOTICE)
-        #xbmc.log('Debug 2 >>' + str(xbmc.getInfoLabel('Container.FolderPath')) , xbmc.LOGNOTICE)
+        #xbmc.log('Debug 1 >>' + str(xbmc.getInfoLabel('Container().CurrentPage')), xbmc.LOGNOTICE)
+        #xbmc.log('Debug 2 >>' + str(xbmc.getInfoLabel('Container.FolderPath')), xbmc.LOGNOTICE)
 
         oInputParameterHandler = cInputParameterHandler()
         oInputParameterHandler.getAllParameter()
-        
+
         if (oInputParameterHandler.exist('function')):
             sFunction = oInputParameterHandler.getValue('function')
         else:
             VSlog('call load methode')
             sFunction = "load"
 
-        if (sFunction=='DoNothing'):
+        if (sFunction == 'setSetting'):
+            if (oInputParameterHandler.exist('id')):
+                id = oInputParameterHandler.getValue('id')
+            else: return
+
+            if (oInputParameterHandler.exist('value')):
+                value = oInputParameterHandler.getValue('value')
+            else: return
+
+            setSetting(id, value)
+            return
+
+        if (sFunction == 'DoNothing'):
             return
 
         if (not oInputParameterHandler.exist('site')):
@@ -49,7 +58,7 @@ class main:
             try:
                 #from resources.lib.about import cAbout
                 #cAbout().getUpdate()
-                plugins = __import__('resources.lib.about', fromlist=['about']).cAbout()
+                plugins = __import__('resources.lib.about', fromlist = ['about']).cAbout()
                 function = getattr(plugins, 'getUpdate')
                 function()
             except:
@@ -66,10 +75,10 @@ class main:
             sSiteName = oInputParameterHandler.getValue('site')
             if (oInputParameterHandler.exist('title')):
                 sTitle = oInputParameterHandler.getValue('title')
-            else: sTitle = "none";
+            else: sTitle = "none"
 
             VSlog('load site ' + sSiteName + ' and call function ' + sFunction)
-            cStatistic().callStartPlugin(sSiteName, sTitle)
+            #cStatistic().callStartPlugin(sSiteName, sTitle)
 
             if (isHosterGui(sSiteName, sFunction) == True):
                 return
@@ -97,7 +106,7 @@ class main:
                 return
 
             if sSiteName == 'globalRun':
-                __import__('resources.lib.runscript', fromlist=['runscript'])
+                __import__('resources.lib.runscript', fromlist = ['runscript'])
                 #function = getattr(plugins, sFunction)
                 #function()
                 return
@@ -106,7 +115,7 @@ class main:
 
                 oGui = cGui()
                 oPluginHandler = cPluginHandler()
-                aPlugins = oPluginHandler.getAvailablePlugins()
+                aPlugins = oPluginHandler.getAvailablePlugins(True)
                 if (len(aPlugins) == 0):
                     addons = addon()
                     addons.openSettings()
@@ -133,27 +142,38 @@ class main:
             #charge sites
             try:
             #exec "from resources.sites import " + sSiteName + " as plugin"
-            #exec "plugin."+ sFunction +"()"
-                plugins = __import__('resources.sites.%s' % sSiteName, fromlist=[sSiteName])
+            #exec "plugin." + sFunction +"()"
+                plugins = __import__('resources.sites.%s' % sSiteName, fromlist = [sSiteName])
                 function = getattr(plugins, sFunction)
                 function()
             except Exception as e:
+                progress().VSclose()    # Refermer la dialogue en cas d'exception, sinon blocage de Kodi 
                 VSlog('could not load site: ' + sSiteName + ' error: ' + str(e))
                 import traceback
                 traceback.print_exc()
                 return
 
+def setSetting(id, value):
+    addons = addon()
+    setting = addons.getSetting(id)
+
+    # Si le parametre existe, on autorise la modification
+    if (setting != ''):
+        addons.setSetting(id, value)
+        return True
+    return False
+
 def isHosterGui(sSiteName, sFunction):
     if (sSiteName == 'cHosterGui'):
         oHosterGui = cHosterGui()
-        exec "oHosterGui."+ sFunction +"()"
+        exec "oHosterGui." + sFunction + "()"
         return True
     return False
 
 def isGui(sSiteName, sFunction):
     if (sSiteName == 'cGui'):
         oGui = cGui()
-        exec "oGui."+ sFunction +"()"
+        exec "oGui." + sFunction + "()"
         return True
     return False
 
@@ -161,7 +181,7 @@ def isFav(sSiteName, sFunction):
     if (sSiteName == 'cFav'):
         from resources.lib.favourite import cFav
         oFav = cFav()
-        exec "oFav."+ sFunction +"()"
+        exec "oFav." + sFunction + "()"
         return True
     return False
 
@@ -169,7 +189,7 @@ def isLibrary(sSiteName, sFunction):
     if (sSiteName == 'cLibrary'):
         from resources.lib.library import cLibrary
         oLibrary = cLibrary()
-        exec "oLibrary."+ sFunction +"()"
+        exec "oLibrary." + sFunction + "()"
         return True
     return False
 
@@ -177,14 +197,14 @@ def isDl(sSiteName, sFunction):
     if (sSiteName == 'cDownload'):
         from resources.lib.download import cDownload
         oDownload = cDownload()
-        exec "oDownload."+ sFunction +"()"
+        exec "oDownload." + sFunction + "()"
         return True
     return False
 
 def isHome(sSiteName, sFunction):
     if (sSiteName == 'cHome'):
         oHome = cHome()
-        exec "oHome."+ sFunction +"()"
+        exec "oHome." + sFunction + "()"
         return True
     return False
 
@@ -192,7 +212,7 @@ def isTrakt(sSiteName, sFunction):
     if (sSiteName == 'cTrakt'):
         from resources.lib.trakt import cTrakt
         oTrakt = cTrakt()
-        exec "oTrakt."+ sFunction +"()"
+        exec "oTrakt." + sFunction + "()"
         return True
     return False
 
@@ -216,19 +236,19 @@ def searchGlobal():
     #VSlog(str(aPlugins), xbmc.LOGNOTICE)
 
     progress_ = progress().VScreate()
-  
+
     #kodi 17 vire la fenetre busy qui ce pose au dessus de la barre de Progress
     try:
         xbmc.executebuiltin("Dialog.Close(busydialog)")
     except: pass
-    
+
     window(10101).setProperty('search', 'true')
 
     oGui.addText('globalSearch', addons.VSlang(30081) % (sSearchText), 'none.png')
 
     for count, plugin in enumerate(aPlugins):
 
-        #text = '%s/%s - %s' % ((count+1), total, plugin['name'])
+        #text = '%s/%s - %s' % ((count + 1), total, plugin['name'])
         progress_.VSupdatesearch(progress_, total, plugin['name'])
         if progress_.iscanceled():
             cancel = True
@@ -236,7 +256,7 @@ def searchGlobal():
             break
 
         #nom du site
-        oGui.addText(plugin['identifier'], '%s. [COLOR olive]%s[/COLOR]' % ((count+1), plugin['name']), 'sites/%s.png' % (plugin['identifier']))
+        oGui.addText(plugin['identifier'], '%s. [COLOR olive]%s[/COLOR]' % ((count + 1), plugin['name']), 'sites/%s.png' % (plugin['identifier']))
         #recherche import
         _pluginSearch(plugin, sSearchText)
 
@@ -258,10 +278,10 @@ def searchGlobal():
 
 
 
-        #result['params'].addParameter('VSTRMSEARCH','True')
+        #result['params'].addParameter('VSTRMSEARCH', 'True')
 
-        oGui.addFolder(result['guiElement'],result['params'])
-        #VSlog('%s - %s' % (middle,old_label),  xbmc.LOGNOTICE)
+        oGui.addFolder(result['guiElement'], result['params'])
+        #VSlog('%s - %s' % (middle, old_label), xbmc.LOGNOTICE)
 
         # if progress_.iscanceled():
         #     if cancel == True:
@@ -277,12 +297,12 @@ def searchGlobal():
 
 def _pluginSearch(plugin, sSearchText):
     try:
-        plugins = __import__('resources.sites.%s' % plugin['identifier'], fromlist=[plugin['identifier']])
+        plugins = __import__('resources.sites.%s' % plugin['identifier'], fromlist = [plugin['identifier']])
         function = getattr(plugins, plugin['search'][1])
-        sUrl = plugin['search'][0]+str(sSearchText)
+        sUrl = plugin['search'][0] + str(sSearchText)
         function(sUrl)
         VSlog("Load Recherche: " + str(plugin['identifier']))
     except:
-        VSlog(plugin['identifier']+': search failed')
+        VSlog(plugin['identifier'] + ': search failed')
 
 main()

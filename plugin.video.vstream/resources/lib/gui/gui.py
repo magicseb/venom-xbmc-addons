@@ -17,7 +17,6 @@ import xbmcplugin
 import urllib
 import unicodedata, re
 
-
 class cGui():
 
     SITE_NAME = 'cGui'
@@ -29,7 +28,6 @@ class cGui():
 
     if isKrypton():
         CONTENT = 'addons'
-
 
     def addMovie(self, sId, sFunction, sLabel, sIcon, sThumbnail, sDesc, oOutputParameterHandler = ''):
         cGui.CONTENT = "movies"
@@ -51,6 +49,26 @@ class cGui():
 
         self.addFolder(oGuiElement, oOutputParameterHandler)
 
+	# Coffret et integrale de films
+    def addMoviePack(self, sId, sFunction, sLabel, sIcon, sThumbnail, sDesc, oOutputParameterHandler = ''):
+        cGui.CONTENT = "movies"
+        oGuiElement = cGuiElement()
+        oGuiElement.setSiteName(sId)
+        oGuiElement.setFunction(sFunction)
+        oGuiElement.setTitle(sLabel)
+        oGuiElement.setIcon(sIcon)
+        oGuiElement.setThumbnail(sThumbnail)
+        oGuiElement.setPoster(sThumbnail)
+        oGuiElement.setMeta(3)
+        oGuiElement.setDescription(sDesc)
+        #oGuiElement.setMovieFanart()
+        oGuiElement.setCat(1)
+
+        if oOutputParameterHandler.getValue('sMovieTitle'):
+            sTitle = oOutputParameterHandler.getValue('sMovieTitle')
+            oGuiElement.setFileName(sTitle)
+
+        self.addFolder(oGuiElement, oOutputParameterHandler)
 
     def addTV(self, sId, sFunction, sLabel, sIcon, sThumbnail, sDesc, oOutputParameterHandler = ''):
         cGui.CONTENT = "tvshows"
@@ -78,11 +96,10 @@ class cGui():
             sTitle = oOutputParameterHandler.getValue('sMovieTitle')
             oGuiElement.setFileName(sTitle)
 
-
         self.addFolder(oGuiElement, oOutputParameterHandler)
 
     def addMisc(self, sId, sFunction, sLabel, sIcon, sThumbnail, sDesc, oOutputParameterHandler = ''):
-        cGui.CONTENT = "movies"
+        #cGui.CONTENT = "movies"
         oGuiElement = cGuiElement()
         oGuiElement.setSiteName(sId)
         oGuiElement.setFunction(sFunction)
@@ -122,7 +139,6 @@ class cGui():
 
         #self.addFolder(oGuiElement, oOutputParameterHandler)
 
-
     def addLink(self, sId, sFunction, sLabel, sThumbnail, sDesc, oOutputParameterHandler = ''):
         cGui.CONTENT = "files"
         oGuiElement = cGuiElement()
@@ -141,9 +157,7 @@ class cGui():
         if sCat:
             oGuiElement.setCat(sCat)
 
-
         self.addFolder(oGuiElement, oOutputParameterHandler)
-
 
     def addDir(self, sId, sFunction, sLabel, sIcon, oOutputParameterHandler = ''):
         oGuiElement = cGuiElement()
@@ -182,7 +196,6 @@ class cGui():
     #utiliser oGui.addText(SITE_IDENTIFIER)
     def addNone(self, sId):
         return self.addText(sId)
-
 
     def addText(self, sId, sLabel="", sIcon='none.png'):
         oGuiElement = cGuiElement()
@@ -278,7 +291,6 @@ class cGui():
         if oGuiElement.getCat():
             oOutputParameterHandler.addParameter('sCat', oGuiElement.getCat())
 
-
         sItemUrl = self.__createItemUrl(oGuiElement, oOutputParameterHandler)
 
         #new context prend en charge les metas
@@ -290,9 +302,9 @@ class cGui():
                 self.createContexMenuinfo(oGuiElement, oOutputParameterHandler)
                 self.createContexMenuba(oGuiElement, oOutputParameterHandler)
                 
-                if self.ADDON.getSetting("bstoken"):
+                if self.ADDON.getSetting("bstoken") != '':
                     self.createContexMenuTrakt(oGuiElement, oOutputParameterHandler)
-                if self.ADDON.getSetting('tmdb_account'):
+                if self.ADDON.getSetting('tmdb_account')!= '':
                     self.createContexMenuTMDB(oGuiElement, oOutputParameterHandler)
                 self.createContexMenuSimil(oGuiElement, oOutputParameterHandler)
 
@@ -304,9 +316,9 @@ class cGui():
                 self.createContexMenuinfo(oGuiElement, oOutputParameterHandler)
                 self.createContexMenuba(oGuiElement, oOutputParameterHandler)
                 
-                if self.ADDON.getSetting("bstoken"):
+                if self.ADDON.getSetting("bstoken") != '':
                     self.createContexMenuTrakt(oGuiElement, oOutputParameterHandler)
-                if self.ADDON.getSetting('tmdb_account'):
+                if self.ADDON.getSetting('tmdb_account') != '':
                     self.createContexMenuTMDB(oGuiElement, oOutputParameterHandler)
                 self.createContexMenuSimil(oGuiElement, oOutputParameterHandler)
 
@@ -316,7 +328,6 @@ class cGui():
         #modif 22/06
         #xbmcplugin.addDirectoryItem(sPluginHandle, sItemUrl, oListItem, isFolder=_isFolder)
         self.listing.append((sItemUrl, oListItem, _isFolder))
-
 
     def createListItem(self, oGuiElement):
 
@@ -390,7 +401,6 @@ class cGui():
         oContext.setOutputParameterHandler(oOutputParameterHandler)
         oGuiElement.addContextItem(oContext)
 
-
     #marque page
     def createContexMenuFav(self, oGuiElement, oOutputParameterHandler= ''):
         oOutputParameterHandler.addParameter('sId', oGuiElement.getSiteName())
@@ -432,7 +442,6 @@ class cGui():
         if status == '2':
             self.CreateSimpleMenu(oGuiElement, oOutputParameterHandler, 'cDownload', 'cDownload', 'ReadDownload', self.ADDON.VSlang(30219))
             self.CreateSimpleMenu(oGuiElement, oOutputParameterHandler, 'cDownload', 'cDownload', 'ResetDownload', self.ADDON.VSlang(30220))
-
 
     #Information
     def createContexMenuinfo(self, oGuiElement, oOutputParameterHandler= ''):
@@ -479,7 +488,6 @@ class cGui():
 
     def createContexMenuSettings(self, oGuiElement, oOutputParameterHandler= ''):
         self.CreateSimpleMenu(oGuiElement, oOutputParameterHandler, 'globalParametre', 'globalParametre', 'opensetting', self.ADDON.VSlang(30023))
-
 
     def __createContextMenu(self, oGuiElement, oListItem):
         sPluginPath = cPluginHandler().getPluginPath()
@@ -591,7 +599,6 @@ class cGui():
         xbmc.executebuiltin('XBMC.Container.Update(%s)' % sTest )
         return False
 
-
     def selectpage(self):
         sPluginPath = cPluginHandler().getPluginPath()
         oInputParameterHandler = cInputParameterHandler()
@@ -620,13 +627,11 @@ class cGui():
 
         return False
 
-
     def selectpage2(self):
         sPluginPath = cPluginHandler().getPluginPath()
         oInputParameterHandler = cInputParameterHandler()
 
         sParams = oInputParameterHandler.getAllParameter()
-
 
         sId = oInputParameterHandler.getValue('sId')
         siteUrl = oInputParameterHandler.getValue('siteUrl')
@@ -643,29 +648,34 @@ class cGui():
         xbmc.executebuiltin('XBMC.Container.Update(%s, replace)' % sTest )
 
     def setWatched(self):
+        if (True):
+            #Use database
+            oInputParameterHandler = cInputParameterHandler()
 
-        oInputParameterHandler = cInputParameterHandler()
+            aParams = oInputParameterHandler.getAllParameter()
 
-        aParams = oInputParameterHandler.getAllParameter()
-        # import xbmc
-        # xbmc.log(str(aParams))
+            sSite = oInputParameterHandler.getValue('siteUrl')
+            sTitle = xbmc.getInfoLabel('ListItem.label')
 
-        sSite = oInputParameterHandler.getValue('siteUrl')
-        sTitle = xbmc.getInfoLabel('ListItem.label')
+            meta = {}
+            meta['title'] = sTitle
+            meta['site'] = sSite
 
-        meta = {}
-        meta['title'] = sTitle
-        meta['site'] = sSite
-
-        row = cDb().get_watched(meta)
-        if row:
-            cDb().del_watched(meta)
-            cDb().del_resume(meta)
+            row = cDb().get_watched(meta)
+            if row:
+                cDb().del_watched(meta)
+                cDb().del_resume(meta)
+            else:
+                cDb().insert_watched(meta)
+                
+            xbmc.executebuiltin( 'Action(ToggleWatched)' )
+            
         else:
-            cDb().insert_watched(meta)
+            # Use kodi buildin feature
+            xbmc.executebuiltin( 'Action(ToggleWatched)' )
 
-        xbmc.executebuiltin( 'Container.Refresh' )
-
+        #Not usefull ?
+        #xbmc.executebuiltin( 'Container.Refresh' )
 
     def viewBA(self):
         oInputParameterHandler = cInputParameterHandler()
@@ -676,9 +686,7 @@ class cGui():
         cBA.SetSearch(sFileName)
         cBA.SearchBA()
 
-
     def viewinfo(self):
-
         from resources.lib.config import WindowsBoxes
 
         oGuiElement = cGuiElement()
@@ -711,7 +719,6 @@ class cGui():
         # if oGuiElement.getSiteUrl():
             # print  str(hash(oGuiElement.getSiteUrl()))
 
-
         sPluginPath = cPluginHandler().getPluginPath()
 
         if (len(oGuiElement.getFunction()) == 0):
@@ -741,7 +748,6 @@ class cGui():
                 return numboard
 
         return False
-
 
     def openSettings(self):
         return False

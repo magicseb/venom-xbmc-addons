@@ -72,6 +72,8 @@ class cRequestHandler:
         return self.__sRealUrl
 
     def GetCookies(self):
+        if not self.__sResponseHeader:
+            return ''
         if 'Set-Cookie' in self.__sResponseHeader:
             import re
             
@@ -79,7 +81,7 @@ class cRequestHandler:
             #c = ''
             #for i in cookie_string:
             #    c = c + i + ', '
-            c = self.__sResponseHeader.getheader('set-cookie')
+            c = self.__sResponseHeader.get('set-cookie')
 
             c2 = re.findall('(?:^|,) *([^;,]+?)=([^;,\/]+?);',c)
             if c2:
@@ -161,11 +163,23 @@ class cRequestHandler:
                 if cloudflare.CheckIfActive(e.read()):
  
                     cookies = self.GetCookies()
-
-                    print 'Page protegee par cloudflare'
+                    VSlog( 'Page protegee par cloudflare')
                     CF = cloudflare.CloudflareBypass()
                     sContent = CF.GetHtml(self.__sUrl,e.read(),cookies,sParameters,oRequest.headers)
-                    self.__sRealUrl,self.__sResponseHeader = CF.GetReponseInfo()
+                    self.__sRealUrl, self.__sResponseHeader = CF.GetReponseInfo()
+                else:
+                    sContent = e.read()
+                    self.__sRealUrl = e.geturl()
+                    self.__sResponseHeader = e.headers()
+                    
+            else:
+                try:
+                    VSlog("%s (%d),%s" % (self.ADDON.VSlang(30205), e.code , self.__sUrl))
+                    self.__sRealUrl = e.geturl()
+                    self.__sResponseHeader = e.headers
+                    sContent = e.read()           
+                except:
+                    sContent = ''
 
             if not sContent:
                 self.DIALOG.VSerror("%s (%d),%s" % (self.ADDON.VSlang(30205), e.code , self.__sUrl))
